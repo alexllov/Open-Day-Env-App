@@ -9,8 +9,8 @@ async function fetchData() {
     data = dataArray;
     renderData(data[data.length - 1]);
     // 1 update every 10s -> 360 updates an hour.
-    if (data.length > 360) {
-      updateCharts(data.slice(data.length - 361, data.length - 1));
+    if (data.length > 50) {
+      updateCharts(data.slice(data.length - 51, data.length - 1));
     } else {
       updateCharts(data);
     }
@@ -21,15 +21,7 @@ async function fetchData() {
 }
 
 function renderData(last) {
-  let html = "<ul>";
-  //dataToDisplay.forEach((entry) => { <- add back if displaying more than 1
-  html += `<li>
-          <strong>Time:</strong> ${last["Time"]} |
-          <strong>Temp:</strong> ${last["Temperature (°C)"]} °C |
-          <strong>Humidity:</strong> ${last["Relative Humidity (%)"]} %
-          </li>`;
-  html += "</ul>";
-
+  let html = `<p>Last Reading Taken: ${last["Time"]}</p>`;
   document.getElementById("lastData").innerHTML = html;
 }
 
@@ -62,24 +54,98 @@ function updateCharts(data) {
   var oxidisingGasses = [];
   var reducingGasses = [];
   var relativeHumidity = [];
+  var dataDict = {
+    // temp & humid & light
+    "Temperature (°C)": [],
+    "Relative Humidity (%)": [],
+    "Light intensity (Lux)": [],
+    // particulates
+    "Coarse Particulates (PM10 ug/m3)": [],
+    "Fine Particulates (PM2.5 ug/m3)": [],
+    "Ultra Fine Particulates (PM1.0 ug/m3)": [],
+    // Extra
+    "NH3 (Ohms)": [],
+    "Oxidising gases (Ohms)": [],
+    "Reducing gases (Ohms)": [],
+  };
   data.forEach((e) => {
     times.push(e["Time"]);
-    temps.push(e["Temperature (°C)"]);
-    coarseParts.push(e["Coarse Particulates (PM10 ug/m3)"]);
-    fineParts.push(e["Fine Particulates (PM2.5 ug/m3)"]);
-    ultraFineParts.push(e["Ultra Fine Particulates (PM1.0 ug/m3)"]);
-    light.push(e["Light intensity (Lux)"]);
-    nh3.push(e["NH3 (Ohms)"]);
-    oxidisingGasses.push(e["Oxidising gases (Ohms)"]);
-    reducingGasses.push(e["Reducing gases (Ohms)"]);
-    relativeHumidity.push(e["Relative Humidity (%)"]);
+    // temp & humid & light
+    dataDict["Temperature (°C)"].push(e["Temperature (°C)"]);
+    dataDict["Relative Humidity (%)"].push(e["Relative Humidity (%)"]);
+    dataDict["Light intensity (Lux)"].push(e["Light intensity (Lux)"]);
+    // particulates
+    dataDict["Coarse Particulates (PM10 ug/m3)"].push(
+      e["Coarse Particulates (PM10 ug/m3)"]
+    );
+    dataDict["Fine Particulates (PM2.5 ug/m3)"].push(
+      e["Fine Particulates (PM2.5 ug/m3)"]
+    );
+    dataDict["Ultra Fine Particulates (PM1.0 ug/m3)"].push(
+      e["Ultra Fine Particulates (PM1.0 ug/m3)"]
+    );
+    // extras
+    dataDict["NH3 (Ohms)"].push(e["NH3 (Ohms)"]);
+    dataDict["Oxidising gases (Ohms)"].push(e["Oxidising gases (Ohms)"]);
+    dataDict["Reducing gases (Ohms)"].push(e["Reducing gases (Ohms)"]);
   });
-  updateTempChart(times, temps);
-  updateHumidChart(times, relativeHumidity);
+
+  if (tempChart) {
+    updateChart(tempChart, times, dataDict["Temperature (°C)"]);
+  } else {
+    createTempChart(times, dataDict["Temperature (°C)"]);
+  }
+  if (humidChart) {
+    updateChart(humidChart, times, dataDict["Relative Humidity (%)"]);
+  } else {
+    createHumidChart(times, dataDict["Relative Humidity (%)"]);
+  }
+  if (lightChart) {
+    updateChart(lightChart, times, dataDict["Light intensity (Lux)"]);
+  } else {
+    createLightChart(times, dataDict["Light intensity (Lux)"]);
+  }
+  if (coarsePChart) {
+    updateChart(
+      coarsePChart,
+      times,
+      dataDict["Coarse Particulates (PM10 ug/m3)"]
+    );
+  } else {
+    createCoarsePChart(times, dataDict["Coarse Particulates (PM10 ug/m3)"]);
+  }
+  if (finePChart) {
+    updateChart(finePChart, times, dataDict["Fine Particulates (PM2.5 ug/m3)"]);
+  } else {
+    createFinePChart(times, dataDict["Fine Particulates (PM2.5 ug/m3)"]);
+  }
+  if (ultraFinePChart) {
+    updateChart(
+      ultraFinePChart,
+      times,
+      dataDict["Ultra Fine Particulates (PM1.0 ug/m3)"]
+    );
+  } else {
+    createUltraFinePChart(
+      times,
+      dataDict["Ultra Fine Particulates (PM1.0 ug/m3)"]
+    );
+  }
 }
 
-function calculateRollingAverage(dataArray, interval) {
+function updateChart(chart, times, data) {
+  chart.data.labels = times;
+  chart.data.datasets[0].data = calculateRollingAverage(data);
+  chart.data.datasets[1].data = data;
+  chart.update({
+    duration: 0,
+    lazy: false,
+  });
+}
+
+function calculateRollingAverage(dataArray) {
   const numericData = dataArray.map((val) => Number(val));
+  let interval = 5;
   let index = interval - 1;
   const length = dataArray.length + 1;
   let results = [];
@@ -94,16 +160,11 @@ function calculateRollingAverage(dataArray, interval) {
 }
 
 let tempChart;
-function updateTempChart(times, temps) {
-  const tempctx = document.getElementById("tempChart").getContext("2d");
+function createTempChart(times, data) {
+  const ctx = document.getElementById("tempChart").getContext("2d");
+  const rollingAvg = calculateRollingAverage(data);
 
-  if (tempChart) {
-    tempChart.destroy();
-  }
-
-  const rollingAvg = calculateRollingAverage(temps, 20);
-
-  tempChart = new Chart(tempctx, {
+  tempChart = new Chart(ctx, {
     type: "line",
     data: {
       labels: times,
@@ -119,7 +180,7 @@ function updateTempChart(times, temps) {
         },
         {
           label: "Temperature (°C)",
-          data: temps,
+          data: data,
           borderColor: "rgba(255, 99, 132, 1)",
           backgroundColor: "rgba(255, 99, 132, 0.2)",
           fill: "start",
@@ -149,24 +210,31 @@ function updateTempChart(times, temps) {
 }
 
 let humidChart;
-function updateHumidChart(times, relativeHumidity) {
-  const humidctx = document.getElementById("humidChart").getContext("2d");
+function createHumidChart(times, data) {
+  const ctx = document.getElementById("humidChart").getContext("2d");
 
-  if (humidChart) {
-    humidChart.destroy();
-  }
+  const rollingAvg = calculateRollingAverage(data);
 
-  humidChart = new Chart(humidctx, {
+  humidChart = new Chart(ctx, {
     type: "line",
     data: {
       labels: times,
       datasets: [
         {
+          label: "Rolling Avg",
+          data: rollingAvg,
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "transparent",
+          fill: false,
+          tension: 0.4,
+          clip: false,
+        },
+        {
           label: "Relative Humidity (%)",
-          data: relativeHumidity,
+          data: data,
           borderColor: "rgb(99, 232, 255)",
           backgroundColor: "rgba(99, 206, 255, 0.2)",
-          fill: true,
+          fill: "start",
           tension: 0.4,
         },
       ],
@@ -184,6 +252,208 @@ function updateHumidChart(times, relativeHumidity) {
           title: {
             display: true,
             text: "Relative Humidity (%)",
+          },
+          beginAtZero: false,
+        },
+      },
+    },
+  });
+}
+
+let lightChart;
+function createLightChart(times, data) {
+  const ctx = document.getElementById("lightChart").getContext("2d");
+  const rollingAvg = calculateRollingAverage(data);
+
+  lightChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: times,
+      datasets: [
+        {
+          label: "Rolling Avg",
+          data: rollingAvg,
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "transparent",
+          fill: false,
+          tension: 0.4,
+          clip: false,
+        },
+        {
+          label: "Light intensity (Lux)",
+          data: data,
+          borderColor: "rgb(233, 244, 80)",
+          backgroundColor: "rgba(233, 244, 80, 0.15)",
+          fill: "start",
+          tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: false,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Time",
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: "Light intensity (Lux)",
+          },
+          beginAtZero: false,
+        },
+      },
+    },
+  });
+}
+
+let coarsePChart;
+function createCoarsePChart(times, data) {
+  const humidctx = document.getElementById("coarsePartChart").getContext("2d");
+  const rollingAvg = calculateRollingAverage(data);
+
+  coarsePChart = new Chart(humidctx, {
+    type: "line",
+    data: {
+      labels: times,
+      datasets: [
+        {
+          label: "Rolling Avg",
+          data: rollingAvg,
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "transparent",
+          fill: false,
+          tension: 0.4,
+          clip: false,
+        },
+        {
+          label: "Coarse Particulates (PM10 ug/m3)",
+          data: data,
+          borderColor: "rgb(80, 244, 154)",
+          backgroundColor: "rgba(80, 244, 154, 0.23)",
+          fill: "start",
+          tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: false,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Time",
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: "Coarse Particulates (PM10 ug/m3)",
+          },
+          beginAtZero: false,
+        },
+      },
+    },
+  });
+}
+
+let finePChart;
+function createFinePChart(times, data) {
+  const humidctx = document.getElementById("finePartChart").getContext("2d");
+  const rollingAvg = calculateRollingAverage(data);
+
+  finePChart = new Chart(humidctx, {
+    type: "line",
+    data: {
+      labels: times,
+      datasets: [
+        {
+          label: "Rolling Avg",
+          data: rollingAvg,
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "transparent",
+          fill: false,
+          tension: 0.4,
+          clip: false,
+        },
+        {
+          label: "Fine Particulates (PM2.5 ug/m3)",
+          data: data,
+          borderColor: "rgb(236, 244, 80)",
+          backgroundColor: "rgba(236, 244, 80, 0.23)",
+          fill: "start",
+          tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: false,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Time",
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: "Fine Particulates (PM2.5 ug/m3)",
+          },
+          beginAtZero: false,
+        },
+      },
+    },
+  });
+}
+
+let ultraFinePChart;
+function createUltraFinePChart(times, data) {
+  const humidctx = document
+    .getElementById("ultraFinePartChart")
+    .getContext("2d");
+  const rollingAvg = calculateRollingAverage(data);
+
+  ultraFinePChart = new Chart(humidctx, {
+    type: "line",
+    data: {
+      labels: times,
+      datasets: [
+        {
+          label: "Rolling Avg",
+          data: rollingAvg,
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "transparent",
+          fill: false,
+          tension: 0.4,
+          clip: false,
+        },
+        {
+          label: "Ultra Fine Particulates (PM1.0 ug/m3)",
+          data: data,
+          borderColor: "rgb(91, 80, 244)",
+          backgroundColor: "rgba(91, 80, 244, 0.12)",
+          fill: "start",
+          tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: false,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Time",
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: "Ultra Fine Particulates (PM1.0 ug/m3)",
           },
           beginAtZero: false,
         },
