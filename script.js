@@ -1,43 +1,46 @@
-const apiUrl = "http://10.101.65.129:5000/data";
+const input = 0.08;
+const hours = 60 * 60 * input;
+const initUrl = `http://10.101.65.129:5000/data?length=${hours}`;
+const updateUrl = `http://10.101.65.129:5000/last`;
 
 let data = [];
 
 async function fetchData() {
   try {
-    const response = await fetch(apiUrl);
+    const response = await fetch(initUrl);
     const dataArray = await response.json();
     const data = dataArray;
     const lastData = data[data.length - 1];
     const aqi = calcAQI(lastData);
     renderData(lastData, aqi);
     // 1 update every 10s -> 360 updates an hour.
-    let numHours = 0.16;
-    let num = numHours * 6 * 60;
-    if (data.length > num) {
-      updateCharts(data.slice(data.length - (num + 1), data.length - 1));
-    } else {
-      updateCharts(data);
-    }
+    //let numHours = 0.16;
+    //let num = numHours * 6 * 60;
+    //if (data.length > num) {
+    //  updateCharts(data.slice(data.length - (num + 1), data.length - 1));
+    //} else {
+    //  updateCharts(data);
+    //}
+    updateCharts(data);
   } catch (error) {
     document.getElementById("lastData").innerText = "Error fetching data.";
     console.error("Fetch error:", error);
   }
 }
 
-function calcAQISum(last) {
-  var aqi = 0;
-  // Particulates
-  aqi += 0.75 * last["Ultra Fine Particulates (PM1.0 ug/m3)"];
-  aqi += 1 * last["Fine Particulates (PM2.5 ug/m3)"];
-  aqi += 0.5 * last["Coarse Particulates (PM10 ug/m3)"];
-  // General
-  aqi += 0.1 * last["Temperature (°C)"];
-  aqi += 0.1 * last["Relative Humidity (%)"];
-  // Gases
-  aqi += 0.25 * last["Oxidising gases (ppm)"];
-  aqi += 0.25 * last["Reducing gases (ppm)"];
-  aqi += 0.25 * last["NH3 (ppm)"];
-  return aqi;
+async function fetchUpdateData() {
+  try {
+    const response = await fetch(updateUrl);
+    const dataArray = await response.json();
+    const data = dataArray;
+    const lastData = data[data.length];
+    const aqi = calcAQI(data);
+    renderData(data, aqi);
+    updateCharts([data]);
+  } catch (error) {
+    document.getElementById("lastData").innerText = "Error fetching data.";
+    console.error("Fetch error:", error);
+  }
 }
 
 function calcAQI(last) {
@@ -60,11 +63,15 @@ function calcAQI(last) {
 function renderData(last, aqi) {
   let html = `<div class="sideSpread">`;
   html += `<p>AQI: ${aqi.toFixed(2)}</p>`;
+  //html += `<div>`;
+  //html += `<label for="slider">Data Range (hours)</label>`;
+  //html += `<input id="slider" type="range" min="0.01" max="10">`;
+  //html += `</div>`;
   html += `<p class="lastReading">Last Reading Taken: ${last["Time"]}</p>`;
   html += `</div>`;
   document.getElementById("lastData").innerHTML = html;
 
-  let details = `<summary>Details</summary>`;
+  let details = `<summary>Reading Data</summary>`;
   details += `<p>Temperature: ${Number(last["Temperature (°C)"]).toPrecision(
     3
   )}</p>`;
@@ -93,8 +100,9 @@ function renderData(last, aqi) {
 }
 
 // Fetch every 10 seconds - in line with readings
+// 1000 = 1s
 fetchData();
-setInterval(fetchData, 10000);
+setInterval(fetchData, 1000);
 
 // "Temperature (°C)": "23.1227974355337",
 // "Relative Humidity (%)": "34.748570427837834",
@@ -221,19 +229,27 @@ function updateCharts(data) {
   }
 }
 
+// True Update w/ single fresh info.
+function appendChart(chart, times, data) {
+  chart.data.labels.push(...times);
+  chart.data.datasets[1].data.push(...data);
+  chart.data.datasets[0].data = calculateRollingAverage(
+    chart.data.datasets[1].data
+  );
+  chart.update({ duration: 0, lazy: false });
+}
+
+// Full update (works more consistently although worse for performance [not noticable])
 function updateChart(chart, times, data) {
   chart.data.labels = times;
-  chart.data.datasets[0].data = calculateRollingAverage(data);
   chart.data.datasets[1].data = data;
-  chart.update({
-    duration: 0,
-    lazy: false,
-  });
+  chart.data.datasets[0].data = calculateRollingAverage(data);
+  chart.update("none");
 }
 
 function calculateRollingAverage(dataArray) {
   const numericData = dataArray.map((val) => Number(val));
-  let interval = 5;
+  let interval = 50;
   let index = interval - 1;
   const length = dataArray.length + 1;
   let results = [];
