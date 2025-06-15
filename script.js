@@ -11,7 +11,7 @@ async function fetchData() {
     const aqi = calcAQI(lastData);
     renderData(lastData, aqi);
     // 1 update every 10s -> 360 updates an hour.
-    let numHours = 0.02;
+    let numHours = 0.16;
     let num = numHours * 6 * 60;
     if (data.length > num) {
       updateCharts(data.slice(data.length - (num + 1), data.length - 1));
@@ -60,26 +60,56 @@ function calcAQI(last) {
 function renderData(last, aqi) {
   let html = `<div class="sideSpread">`;
   html += `<p>AQI: ${aqi.toFixed(2)}</p>`;
-  html += `<p>Last Reading Taken: ${last["Time"]}</p>`;
+  html += `<p class="lastReading">Last Reading Taken: ${last["Time"]}</p>`;
   html += `</div>`;
   document.getElementById("lastData").innerHTML = html;
+
+  let details = `<summary>Details</summary>`;
+  details += `<p>Temperature: ${Number(last["Temperature (°C)"]).toPrecision(
+    3
+  )}</p>`;
+  details += `<p>Humidity: ${Number(last["Relative Humidity (%)"]).toPrecision(
+    3
+  )}</p>`;
+
+  details += `<p>Coarse Particulates: ${Number(
+    last["Coarse Particulates (PM10 ug/m3)"]
+  ).toPrecision(3)}</p>`;
+  details += `<p>Fine Particulates: ${Number(
+    last["Fine Particulates (PM2.5 ug/m3)"]
+  ).toPrecision(3)}</p>`;
+  details += `<p>Ultra-fine Particulates: ${Number(
+    last["Ultra Fine Particulates (PM1.0 ug/m3)"]
+  ).toPrecision(3)}</p>`;
+
+  details += `<p>Oxidising Gases: ${Number(
+    last["Oxidising gases (ppm)"]
+  ).toPrecision(3)}</p>`;
+  details += `<p>Reducing Gases: ${Number(
+    last["Reducing gases (ppm)"]
+  ).toPrecision(3)}</p>`;
+  details += `<p>NH3: ${Number(last["NH3 (ppm)"]).toPrecision(3)}</p>`;
+  document.getElementById("details").innerHTML = details;
 }
 
 // Fetch every 10 seconds - in line with readings
 fetchData();
 setInterval(fetchData, 10000);
 
-// "Ultra Fine Particulates (PM1.0 ug/m3)": "2"
-// "Fine Particulates (PM2.5 ug/m3)": "4",
-// "Coarse Particulates (PM10 ug/m3)": "4",
-// "Light intensity (Lux)": "41.03365",
-// "NH3 (ppm)": "76866.00161768672",
-// "Oxidising gases (ppm)": "23336.714159220803",
-// "Pressure (hPa)": "1016.4690698772644",
-// "Proximity": "0",
-// "Reducing gases (ppm)": "274294.9061662199",
-// "Relative Humidity (%)": "34.748570427837834",
 // "Temperature (°C)": "23.1227974355337",
+// "Relative Humidity (%)": "34.748570427837834",
+// "Light intensity (Lux)": "41.03365",
+
+// "Coarse Particulates (PM10 ug/m3)": "4",
+// "Fine Particulates (PM2.5 ug/m3)": "4",
+// "Ultra Fine Particulates (PM1.0 ug/m3)": "2"
+
+// "Oxidising gases (ppm)": "23336.714159220803",
+// "Reducing gases (ppm)": "274294.9061662199",
+// "NH3 (ppm)": "76866.00161768672",
+
+// "Proximity": "0",
+// "Pressure (hPa)": "1016.4690698772644",
 // "Time": "13/06/2025 14:54:32",
 
 // Handler Func to update all charts
