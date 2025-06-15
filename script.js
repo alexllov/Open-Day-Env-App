@@ -1,6 +1,6 @@
-const input = 0.08;
-const hours = 60 * 60 * input;
-const initUrl = `http://10.101.65.129:5000/data?length=${hours}`;
+const hours = 1;
+const num = 60 * 60 * hours;
+const initUrl = `http://10.101.65.129:5000/data?length=${num}`;
 const updateUrl = `http://10.101.65.129:5000/last`;
 
 let data = [];
@@ -72,30 +72,61 @@ function renderData(last, aqi) {
   document.getElementById("lastData").innerHTML = html;
 
   let details = `<summary>Reading Data</summary>`;
-  details += `<p>Temperature: ${Number(last["Temperature (°C)"]).toPrecision(
-    3
-  )}</p>`;
-  details += `<p>Humidity: ${Number(last["Relative Humidity (%)"]).toPrecision(
-    3
-  )}</p>`;
 
-  details += `<p>Coarse Particulates: ${Number(
+  details += `<div class="sideSpread">`;
+  details += `<span>Temperature:</span>`;
+  details += `<span> ${Number(last["Temperature (°C)"]).toPrecision(
+    3
+  )} °C</span>`;
+  details += `</div>`;
+
+  details += `<div class="sideSpread">`;
+  details += `<span>Humidity:</span>`;
+  details += `<span> ${Number(last["Relative Humidity (%)"]).toPrecision(
+    3
+  )} %</span>`;
+  details += `</div>`;
+
+  details += `<div class="sideSpread">`;
+  details += `<span>Coarse Parts:</span>`;
+  details += `<span> ${Number(
     last["Coarse Particulates (PM10 ug/m3)"]
-  ).toPrecision(3)}</p>`;
-  details += `<p>Fine Particulates: ${Number(
-    last["Fine Particulates (PM2.5 ug/m3)"]
-  ).toPrecision(3)}</p>`;
-  details += `<p>Ultra-fine Particulates: ${Number(
-    last["Ultra Fine Particulates (PM1.0 ug/m3)"]
-  ).toPrecision(3)}</p>`;
+  ).toPrecision(3)} ug/m3</span>`;
+  details += `</div>`;
 
-  details += `<p>Oxidising Gases: ${Number(
-    last["Oxidising gases (ppm)"]
-  ).toPrecision(3)}</p>`;
-  details += `<p>Reducing Gases: ${Number(
-    last["Reducing gases (ppm)"]
-  ).toPrecision(3)}</p>`;
-  details += `<p>NH3: ${Number(last["NH3 (ppm)"]).toPrecision(3)}</p>`;
+  details += `<div class="sideSpread">`;
+  details += `<span>Fine Parts:</span>`;
+  details += `<span> ${Number(
+    last["Fine Particulates (PM2.5 ug/m3)"]
+  ).toPrecision(3)} ug/m3</span>`;
+  details += `</div>`;
+
+  details += `<div class="sideSpread">`;
+  details += `<span>Ultra-fine Parts:</span>`;
+  details += `<span> ${Number(
+    last["Ultra Fine Particulates (PM1.0 ug/m3)"]
+  ).toPrecision(3)} ug/m3</span>`;
+  details += `</div>`;
+
+  details += `<div class="sideSpread">`;
+  details += `<span>Oxidising Gases:</span>`;
+  details += `<span> ${Number(last["Oxidising gases (ppm)"]).toPrecision(
+    3
+  )} ppm</span>`;
+  details += `</div>`;
+
+  details += `<div class="sideSpread">`;
+  details += `<span>Reducing Gases:</span>`;
+  details += `<span> ${Number(last["Reducing gases (ppm)"]).toPrecision(
+    3
+  )} ppm</span>`;
+  details += `</div>`;
+
+  details += `<div class="sideSpread">`;
+  details += `<span>NH3:</span>`;
+  details += `<span> ${Number(last["NH3 (ppm)"]).toPrecision(3)} ppm</span>`;
+  details += `</div>`;
+
   document.getElementById("details").innerHTML = details;
 }
 
@@ -249,7 +280,7 @@ function updateChart(chart, times, data) {
 
 function calculateRollingAverage(dataArray) {
   const numericData = dataArray.map((val) => Number(val));
-  let interval = 50;
+  let interval = 100;
   let index = interval - 1;
   const length = dataArray.length + 1;
   let results = [];
