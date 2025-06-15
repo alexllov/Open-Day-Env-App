@@ -160,6 +160,9 @@ function updateCharts(data) {
     dataDict["NH3 (ppm)"].push(e["NH3 (ppm)"]);
   });
 
+  // CUT TIMES DOWN FOR NICE DISPLAY
+  times = times.map((t) => t.split(" ")[1]);
+
   if (tempChart) {
     updateChart(tempChart, times, dataDict["Temperature (°C)"]);
   } else {
@@ -230,7 +233,7 @@ function updateChart(chart, times, data) {
 
 function calculateRollingAverage(dataArray) {
   const numericData = dataArray.map((val) => Number(val));
-  let interval = 20;
+  let interval = 5;
   let index = interval - 1;
   const length = dataArray.length + 1;
   let results = [];
@@ -244,36 +247,33 @@ function calculateRollingAverage(dataArray) {
   return results;
 }
 
-let tempChart;
-function createTempChart(times, data) {
-  const ctx = document.getElementById("tempChart").getContext("2d");
-  const rollingAvg = calculateRollingAverage(data);
-
-  tempChart = new Chart(ctx, {
+function createChart(ctx, times, data, dataColor, dataBg, avg, avgColor, text) {
+  return new Chart(ctx, {
     type: "line",
     data: {
       labels: times,
       datasets: [
         {
           label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(54, 162, 235, 1)",
+          data: avg,
+          borderColor: avgColor,
           backgroundColor: "transparent",
           fill: false,
           tension: 0.4,
           clip: false,
         },
         {
-          label: "Temperature (°C)",
+          label: text,
           data: data,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "rgba(255, 99, 133, 0.15)",
+          borderColor: dataColor,
+          backgroundColor: dataBg,
           fill: "start",
           tension: 0.4,
         },
       ],
     },
     options: {
+      elements: { point: { radius: 0, hitRadius: 10 } },
       responsive: false,
       scales: {
         x: {
@@ -285,13 +285,30 @@ function createTempChart(times, data) {
         y: {
           title: {
             display: true,
-            text: "Temperature (°C)",
+            text: text,
           },
           beginAtZero: false,
         },
       },
     },
   });
+}
+
+let tempChart;
+function createTempChart(times, data) {
+  const ctx = document.getElementById("tempChart").getContext("2d");
+  const rollingAvg = calculateRollingAverage(data);
+
+  tempChart = createChart(
+    ctx,
+    times,
+    data,
+    "rgba(255, 99, 132, 1)",
+    "rgba(255, 99, 132, 0.15)",
+    rollingAvg,
+    "rgba(54, 162, 235, 1)",
+    "Temperature (°C)"
+  );
 }
 
 let humidChart;
@@ -300,49 +317,16 @@ function createHumidChart(times, data) {
 
   const rollingAvg = calculateRollingAverage(data);
 
-  humidChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: 0.4,
-          clip: false,
-        },
-        {
-          label: "Relative Humidity (%)",
-          data: data,
-          borderColor: "rgb(99, 232, 255)",
-          backgroundColor: "rgba(99, 206, 255, 0.15)",
-          fill: "start",
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "Relative Humidity (%)",
-          },
-          beginAtZero: false,
-        },
-      },
-    },
-  });
+  humidChart = createChart(
+    ctx,
+    times,
+    data,
+    "rgb(99, 232, 255)",
+    "rgba(99, 232, 255, 0.15)",
+    rollingAvg,
+    "rgba(255, 99, 132, 1)",
+    "Relative Humidity (%)"
+  );
 }
 
 let lightChart;
@@ -350,49 +334,16 @@ function createLightChart(times, data) {
   const ctx = document.getElementById("lightChart").getContext("2d");
   const rollingAvg = calculateRollingAverage(data);
 
-  lightChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: 0.4,
-          clip: false,
-        },
-        {
-          label: "Light intensity (Lux)",
-          data: data,
-          borderColor: "rgb(233, 244, 80)",
-          backgroundColor: "rgba(233, 244, 80, 0.15)",
-          fill: "start",
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "Light intensity (Lux)",
-          },
-          beginAtZero: false,
-        },
-      },
-    },
-  });
+  lightChart = createChart(
+    ctx,
+    times,
+    data,
+    "rgb(233, 244, 80)",
+    "rgba(233, 244, 80, 0.15)",
+    rollingAvg,
+    "rgba(255, 99, 132, 1)",
+    "Light intensity (Lux)"
+  );
 }
 
 let coarsePChart;
@@ -400,49 +351,16 @@ function createCoarsePChart(times, data) {
   const ctx = document.getElementById("coarsePartChart").getContext("2d");
   const rollingAvg = calculateRollingAverage(data);
 
-  coarsePChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: 0.4,
-          clip: false,
-        },
-        {
-          label: "Coarse Particulates (PM10 ug/m3)",
-          data: data,
-          borderColor: "rgb(80, 244, 154)",
-          backgroundColor: "rgba(80, 244, 154, 0.15)",
-          fill: "start",
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "Coarse Particulates (PM10 ug/m3)",
-          },
-          beginAtZero: false,
-        },
-      },
-    },
-  });
+  coarsePChart = createChart(
+    ctx,
+    times,
+    data,
+    "rgb(80, 244, 154)",
+    "rgba(80, 244, 154, 0.15)",
+    rollingAvg,
+    "rgba(255, 99, 132, 1)",
+    "Coarse Particulates (PM10 ug/m3)"
+  );
 }
 
 let finePChart;
@@ -450,49 +368,16 @@ function createFinePChart(times, data) {
   const ctx = document.getElementById("finePartChart").getContext("2d");
   const rollingAvg = calculateRollingAverage(data);
 
-  finePChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: 0.4,
-          clip: false,
-        },
-        {
-          label: "Fine Particulates (PM2.5 ug/m3)",
-          data: data,
-          borderColor: "rgb(236, 244, 80)",
-          backgroundColor: "rgba(236, 244, 80, 0.15)",
-          fill: "start",
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "Fine Particulates (PM2.5 ug/m3)",
-          },
-          beginAtZero: false,
-        },
-      },
-    },
-  });
+  finePChart = createChart(
+    ctx,
+    times,
+    data,
+    "rgb(236, 244, 80)",
+    "rgba(236, 244, 80, 0.15)",
+    rollingAvg,
+    "rgba(255, 99, 132, 1)",
+    "Fine Particulates (PM2.5 ug/m3)"
+  );
 }
 
 let ultraFinePChart;
@@ -500,49 +385,16 @@ function createUltraFinePChart(times, data) {
   const ctx = document.getElementById("ultraFinePartChart").getContext("2d");
   const rollingAvg = calculateRollingAverage(data);
 
-  ultraFinePChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: 0.4,
-          clip: false,
-        },
-        {
-          label: "Ultra Fine Particulates (PM1.0 ug/m3)",
-          data: data,
-          borderColor: "rgb(91, 80, 244)",
-          backgroundColor: "rgba(91, 80, 244, 0.15)",
-          fill: "start",
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "Ultra Fine Particulates (PM1.0 ug/m3)",
-          },
-          beginAtZero: false,
-        },
-      },
-    },
-  });
+  ultraFinePChart = createChart(
+    ctx,
+    times,
+    data,
+    "rgb(91, 80, 244)",
+    "rgba(91, 80, 244, 0.15)",
+    rollingAvg,
+    "rgba(255, 99, 132, 1)",
+    "Ultra Fine Particulates (PM1.0 ug/m3)"
+  );
 }
 
 let oxidisingChart;
@@ -550,49 +402,16 @@ function createOxidisingChart(times, data) {
   const ctx = document.getElementById("oxidisingChart").getContext("2d");
   const rollingAvg = calculateRollingAverage(data);
 
-  oxidisingChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: 0.4,
-          clip: false,
-        },
-        {
-          label: "Oxidising gases (ppm)",
-          data: data,
-          borderColor: "rgb(80, 244, 154)",
-          backgroundColor: "rgba(80, 244, 154, 0.15)",
-          fill: "start",
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "Oxidising gases (ppm)",
-          },
-          beginAtZero: false,
-        },
-      },
-    },
-  });
+  oxidisingChart = createChart(
+    ctx,
+    times,
+    data,
+    "rgb(80, 244, 154)",
+    "rgba(80, 244, 154, 0.15)",
+    rollingAvg,
+    "rgba(255, 99, 132, 1)",
+    "Oxidising gases (ppm)"
+  );
 }
 
 let reducingChart;
@@ -600,49 +419,16 @@ function createReducingChart(times, data) {
   const ctx = document.getElementById("reducingChart").getContext("2d");
   const rollingAvg = calculateRollingAverage(data);
 
-  reducingChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: 0.4,
-          clip: false,
-        },
-        {
-          label: "Reducing gases (ppm)",
-          data: data,
-          borderColor: "rgb(244, 80, 241)",
-          backgroundColor: "rgba(244, 80, 241, 0.15)",
-          fill: "start",
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "Reducing gases (ppm)",
-          },
-          beginAtZero: false,
-        },
-      },
-    },
-  });
+  reducingChart = createChart(
+    ctx,
+    times,
+    data,
+    "rgb(244, 80, 241)",
+    "rgba(244, 80, 241, 0.15)",
+    rollingAvg,
+    "rgba(255, 99, 132, 1)",
+    "Reducing gases (ppm)"
+  );
 }
 
 let nh3Chart;
@@ -650,47 +436,14 @@ function createNh3Chart(times, data) {
   const ctx = document.getElementById("nh3Chart").getContext("2d");
   const rollingAvg = calculateRollingAverage(data);
 
-  nh3Chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: "Rolling Avg",
-          data: rollingAvg,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: 0.4,
-          clip: false,
-        },
-        {
-          label: "NH3 (ppm)",
-          data: data,
-          borderColor: "rgb(80, 228, 244)",
-          backgroundColor: "rgba(80, 228, 244, 0.15)",
-          fill: "start",
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "NH3 (ppm)",
-          },
-          beginAtZero: false,
-        },
-      },
-    },
-  });
+  nh3Chart = createChart(
+    ctx,
+    times,
+    data,
+    "rgb(80, 228, 244)",
+    "rgba(80, 228, 244, 0.15)",
+    rollingAvg,
+    "rgba(255, 99, 132, 1)",
+    "NH3 (ppm)"
+  );
 }
