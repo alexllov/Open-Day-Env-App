@@ -6,11 +6,15 @@ async function fetchData() {
   try {
     const response = await fetch(apiUrl);
     const dataArray = await response.json();
-    data = dataArray;
-    renderData(data[data.length - 1]);
+    const data = dataArray;
+    const lastData = data[data.length - 1];
+    const aqi = calcAQI(lastData);
+    renderData(lastData, aqi);
     // 1 update every 10s -> 360 updates an hour.
-    if (data.length > 50) {
-      updateCharts(data.slice(data.length - 51, data.length - 1));
+    let numHours = 0.02;
+    let num = numHours * 6 * 60;
+    if (data.length > num) {
+      updateCharts(data.slice(data.length - (num + 1), data.length - 1));
     } else {
       updateCharts(data);
     }
@@ -20,8 +24,44 @@ async function fetchData() {
   }
 }
 
-function renderData(last) {
-  let html = `<p>Last Reading Taken: ${last["Time"]}</p>`;
+function calcAQISum(last) {
+  var aqi = 0;
+  // Particulates
+  aqi += 0.75 * last["Ultra Fine Particulates (PM1.0 ug/m3)"];
+  aqi += 1 * last["Fine Particulates (PM2.5 ug/m3)"];
+  aqi += 0.5 * last["Coarse Particulates (PM10 ug/m3)"];
+  // General
+  aqi += 0.1 * last["Temperature (°C)"];
+  aqi += 0.1 * last["Relative Humidity (%)"];
+  // Gases
+  aqi += 0.25 * last["Oxidising gases (ppm)"];
+  aqi += 0.25 * last["Reducing gases (ppm)"];
+  aqi += 0.25 * last["NH3 (ppm)"];
+  return aqi;
+}
+
+function calcAQI(last) {
+  var aqi = [];
+  // Particulates
+  aqi.push(0.75 * last["Ultra Fine Particulates (PM1.0 ug/m3)"]);
+  aqi.push(1 * last["Fine Particulates (PM2.5 ug/m3)"]);
+  aqi.push(0.5 * last["Coarse Particulates (PM10 ug/m3)"]);
+  // General
+  aqi.push(0.1 * last["Temperature (°C)"]);
+  aqi.push(0.1 * last["Relative Humidity (%)"]);
+  // Gases
+  aqi.push(0.25 * last["Oxidising gases (ppm)"]);
+  aqi.push(0.25 * last["Reducing gases (ppm)"]);
+  aqi.push(0.25 * last["NH3 (ppm)"]);
+  let avgAqi = aqi.reduce((a, b) => a + b) / aqi.length;
+  return avgAqi;
+}
+
+function renderData(last, aqi) {
+  let html = `<div class="sideSpread">`;
+  html += `<p>AQI: ${aqi.toFixed(2)}</p>`;
+  html += `<p>Last Reading Taken: ${last["Time"]}</p>`;
+  html += `</div>`;
   document.getElementById("lastData").innerHTML = html;
 }
 
@@ -29,18 +69,18 @@ function renderData(last) {
 fetchData();
 setInterval(fetchData, 10000);
 
-// "Coarse Particulates (PM10 ug/m3)": "4",
+// "Ultra Fine Particulates (PM1.0 ug/m3)": "2"
 // "Fine Particulates (PM2.5 ug/m3)": "4",
+// "Coarse Particulates (PM10 ug/m3)": "4",
 // "Light intensity (Lux)": "41.03365",
-// "NH3 (Ohms)": "76866.00161768672",
-// "Oxidising gases (Ohms)": "23336.714159220803",
+// "NH3 (ppm)": "76866.00161768672",
+// "Oxidising gases (ppm)": "23336.714159220803",
 // "Pressure (hPa)": "1016.4690698772644",
 // "Proximity": "0",
-// "Reducing gases (Ohms)": "274294.9061662199",
+// "Reducing gases (ppm)": "274294.9061662199",
 // "Relative Humidity (%)": "34.748570427837834",
 // "Temperature (°C)": "23.1227974355337",
 // "Time": "13/06/2025 14:54:32",
-// "Ultra Fine Particulates (PM1.0 ug/m3)": "2"
 
 // Handler Func to update all charts
 function updateCharts(data) {
@@ -64,9 +104,9 @@ function updateCharts(data) {
     "Fine Particulates (PM2.5 ug/m3)": [],
     "Ultra Fine Particulates (PM1.0 ug/m3)": [],
     // Extra
-    "NH3 (Ohms)": [],
-    "Oxidising gases (Ohms)": [],
-    "Reducing gases (Ohms)": [],
+    "NH3 (ppm)": [],
+    "Oxidising gases (ppm)": [],
+    "Reducing gases (ppm)": [],
   };
   data.forEach((e) => {
     times.push(e["Time"]);
@@ -85,9 +125,9 @@ function updateCharts(data) {
       e["Ultra Fine Particulates (PM1.0 ug/m3)"]
     );
     // extras
-    dataDict["Oxidising gases (Ohms)"].push(e["Oxidising gases (Ohms)"]);
-    dataDict["Reducing gases (Ohms)"].push(e["Reducing gases (Ohms)"]);
-    dataDict["NH3 (Ohms)"].push(e["NH3 (Ohms)"]);
+    dataDict["Oxidising gases (ppm)"].push(e["Oxidising gases (ppm)"]);
+    dataDict["Reducing gases (ppm)"].push(e["Reducing gases (ppm)"]);
+    dataDict["NH3 (ppm)"].push(e["NH3 (ppm)"]);
   });
 
   if (tempChart) {
@@ -132,19 +172,19 @@ function updateCharts(data) {
     );
   }
   if (oxidisingChart) {
-    updateChart(oxidisingChart, times, dataDict["Oxidising gases (Ohms)"]);
+    updateChart(oxidisingChart, times, dataDict["Oxidising gases (ppm)"]);
   } else {
-    createOxidisingChart(times, dataDict["Oxidising gases (Ohms)"]);
+    createOxidisingChart(times, dataDict["Oxidising gases (ppm)"]);
   }
   if (reducingChart) {
-    updateChart(reducingChart, times, dataDict["Reducing gases (Ohms)"]);
+    updateChart(reducingChart, times, dataDict["Reducing gases (ppm)"]);
   } else {
-    createReducingChart(times, dataDict["Reducing gases (Ohms)"]);
+    createReducingChart(times, dataDict["Reducing gases (ppm)"]);
   }
   if (nh3Chart) {
-    updateChart(nh3Chart, times, dataDict["NH3 (Ohms)"]);
+    updateChart(nh3Chart, times, dataDict["NH3 (ppm)"]);
   } else {
-    createNh3Chart(times, dataDict["NH3 (Ohms)"]);
+    createNh3Chart(times, dataDict["NH3 (ppm)"]);
   }
 }
 
@@ -160,7 +200,7 @@ function updateChart(chart, times, data) {
 
 function calculateRollingAverage(dataArray) {
   const numericData = dataArray.map((val) => Number(val));
-  let interval = 5;
+  let interval = 20;
   let index = interval - 1;
   const length = dataArray.length + 1;
   let results = [];
@@ -495,7 +535,7 @@ function createOxidisingChart(times, data) {
           clip: false,
         },
         {
-          label: "Oxidising gases (Ohms)",
+          label: "Oxidising gases (ppm)",
           data: data,
           borderColor: "rgb(80, 244, 154)",
           backgroundColor: "rgba(80, 244, 154, 0.15)",
@@ -516,7 +556,7 @@ function createOxidisingChart(times, data) {
         y: {
           title: {
             display: true,
-            text: "Oxidising gases (Ohms)",
+            text: "Oxidising gases (ppm)",
           },
           beginAtZero: false,
         },
@@ -545,7 +585,7 @@ function createReducingChart(times, data) {
           clip: false,
         },
         {
-          label: "Reducing gases (Ohms)",
+          label: "Reducing gases (ppm)",
           data: data,
           borderColor: "rgb(244, 80, 241)",
           backgroundColor: "rgba(244, 80, 241, 0.15)",
@@ -566,7 +606,7 @@ function createReducingChart(times, data) {
         y: {
           title: {
             display: true,
-            text: "Reducing gases (Ohms)",
+            text: "Reducing gases (ppm)",
           },
           beginAtZero: false,
         },
@@ -595,7 +635,7 @@ function createNh3Chart(times, data) {
           clip: false,
         },
         {
-          label: "NH3 (Ohms)",
+          label: "NH3 (ppm)",
           data: data,
           borderColor: "rgb(80, 228, 244)",
           backgroundColor: "rgba(80, 228, 244, 0.15)",
@@ -616,7 +656,7 @@ function createNh3Chart(times, data) {
         y: {
           title: {
             display: true,
-            text: "NH3 (Ohms)",
+            text: "NH3 (ppm)",
           },
           beginAtZero: false,
         },
