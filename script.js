@@ -1,7 +1,11 @@
-const hours = 1;
+// Control amount of data in graphs
+const hours = 0.5;
 const num = 60 * 60 * hours;
 const initUrl = `http://10.101.65.129:5000/data?length=${num}`;
 const updateUrl = `http://10.101.65.129:5000/last`;
+
+// Control efresh rate (s)
+const loopTime = 2;
 
 let data = [];
 
@@ -133,7 +137,7 @@ function renderData(last, aqi) {
 // Fetch every 10 seconds - in line with readings
 // 1000 = 1s
 fetchData();
-setInterval(fetchData, 1000);
+setInterval(fetchData, loopTime * 1000);
 
 // "Temperature (°C)": "23.1227974355337",
 // "Relative Humidity (%)": "34.748570427837834",
